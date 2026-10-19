@@ -121,12 +121,12 @@ if st.sidebar.button("🚀 Rodar Simulação e Enviar Dados"):
     # Layout de 3 colunas para os Cards Superiores
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric(label="🏭 Total de Motos Finalizadas", value=f"{motos_calc} un")
+        st.metric(label="Motos Finalizadas", value=f"{motos_calc} ")
     with col2:
-        st.metric(label="🚨 Alertas de Defeito / Setup (E11)", value=f"{defeitos_calc} ocorrências")
+        st.metric(label="Defeito / Setup (E11)", value=f"{defeitos_calc} ")
         st.caption("🔴 ↓- Crítico")
     with col3:
-        st.metric(label="🎯 Taxa de Qualidade Global", value=f"{taxa_qualidade:.1f}%")
+        st.metric(label="Taxa de Qualidade Global", value=f"{taxa_qualidade:.1f}%")
 
     st.markdown("---")
     st.markdown("#### 📊 Gráfico de Balanceamento de Linha (Tempo Médio por Estação)")
