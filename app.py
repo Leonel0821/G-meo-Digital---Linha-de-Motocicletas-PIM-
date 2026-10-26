@@ -14,13 +14,13 @@ st.set_page_config(layout="wide", page_title="Gêmeo Digital - Grupo 8")
 # ==========================================
 # CONFIGURAÇÃO DA BARRA LATERAL (STREAMLIT)
 # ==========================================
-st.sidebar.header("⚙️ Configurações do Gêmeo Digital")
+st.sidebar.header("Entrada de dados no Gêmeo Digital")
 
 # Inputs interativos que substituem as constantes fixas
 TEMPO_SIMULACAO = st.sidebar.number_input("Tempo de Simulação (segundos)", value=28800)
 TAKT_TIME_META = st.sidebar.number_input("Meta Takt Time (segundos)", value=90)
-PPM_DEFEITO = st.sidebar.number_input("PPM de Defeito (Estação 11)", value=35000)
-TEMPO_SETUP_MODELO = st.sidebar.number_input("Tempo de Setup (segundos)", value=180)
+PPM_DEFEITO = st.sidebar.number_input("Defeito de montagem PPM (Estação 11)", value=35000)
+TEMPO_SETUP_MODELO = st.sidebar.number_input("Tempo de troca de modelo (segundos)", value=180)
 
 # Botão para disparar a simulação e atualizar o Dashboard
 if st.sidebar.button("🚀 Rodar Simulação e Enviar Dados"):
