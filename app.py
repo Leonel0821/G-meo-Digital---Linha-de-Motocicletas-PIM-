@@ -123,7 +123,7 @@ if st.sidebar.button("🚀 Rodar Simulação e Enviar Dados"):
     with col1:
         st.metric(label="Motos Finalizadas", value=f"{motos_calc} ")
     with col2:
-        st.metric(label="Defeito / Setup (E11)", value=f"{defeitos_calc} ")
+        st.metric(label="Defeito de montagem (E11)", value=f"{defeitos_calc} ")
         st.caption("🔴 ↓- Crítico")
     with col3:
         st.metric(label="Taxa de Qualidade Global", value=f"{taxa_qualidade:.1f}%")
