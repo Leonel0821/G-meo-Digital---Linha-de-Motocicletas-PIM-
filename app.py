@@ -12,14 +12,14 @@ import plotly.express as px  # Importação necessária para o gráfico interati
 st.set_page_config(layout="wide", page_title="Gêmeo Digital - Grupo 8")
 
 # ==========================================
-# CONFIGURAÇÃO DA BARRA LATERAL (STREAMLIT)
+# CONFIGURAÇÃO DA BARRA LATERAL (STREAMLIT) - CONFIGURAÇÕES ORIGINAIS INTACTAS
 # ==========================================
-st.sidebar.header("Entrada de dados no Gêmeo Digital")
+st.sidebar.header("⚙️ Configurações do Gêmeo Digital")
 
-# Inputs interativos que substituem as constantes fixas
+# Inputs interativos exatamente iguais ao seu código original
 TEMPO_SIMULACAO = st.sidebar.number_input("Tempo de Simulação (segundos)", value=28800)
 TAKT_TIME_META = st.sidebar.number_input("Meta Takt Time (segundos)", value=90)
-PPM_DEFEITO = st.sidebar.number_input("Defeito de montagem PPM (Estação 11)", value=35000)
+PPM_DEFEITO = st.sidebar.number_input("PPM de Defeito (Estação 11)", value=35000)
 TEMPO_SETUP_MODELO = st.sidebar.number_input("Tempo de troca de modelo (segundos)", value=180)
 
 # Botão para disparar a simulação e atualizar o Dashboard
@@ -105,10 +105,10 @@ if st.sidebar.button("🚀 Rodar Simulação e Enviar Dados"):
         st.error(f"Erro ao conectar no MQTT: {e}")
 
     # =========================================================
-    # 📊 PARTE NOVA: MONTAGEM DOS GRÁFICOS DO GRUPO 8
+    # 📊 EXIBIÇÃO DOS RESULTADOS COM OS INDICADORES DE MELHORIA (DELTAS)
     # =========================================================
     st.markdown("---")
-    st.markdown("### Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
+    st.markdown("## Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
     st.markdown("#### Monitoramento em Tempo Real - Linha de Montagem de Motocicletas")
     st.markdown("---")
 
@@ -118,14 +118,51 @@ if st.sidebar.button("🚀 Rodar Simulação e Enviar Dados"):
     else:
         taxa_qualidade = 100.0
 
-    # Layout de 3 colunas para os Cards Superiores
-    col1, col2, col3 = st.columns(3)
+    # Layout de 4 colunas para mostrar os resultados e os deltas de melhoria comparados ao passado (Baseline)
+    col1, col2, col3, col4 = st.columns(4)
+    
     with col1:
-        st.metric(label="Motos Finalizadas", value=f"{motos_calc} ")
+        # Compara a produção final com a capacidade teórica de 300 motos do slide
+        ganho_motos = motos_calc - 300
+        st.metric(
+            label="Motos Finalizadas", 
+            value=f"{motos_calc}",
+            delta=f"{ganho_motos:+} u. vs Meta" if ganho_motos != 0 else "No ritmo previsto"
+        )
+        
     with col2:
-        st.metric(label="Defeito de montagem (E11)", value=f"{defeitos_calc} ")
+        # Mostra o resultado atual dos defeitos calculados na simulação
+        st.metric(label="Defeito de montagem (E11)", value=f"{defeitos_calc}")
+        
     with col3:
-        st.metric(label="Taxa de Qualidade Global", value=f"{taxa_qualidade:.1f}%")
+        # Compara o tempo de troca de modelo inserido com o cenário inicial antigo de 180 segundos
+        reducao_setup = TEMPO_SETUP_MODELO - 180
+        porcentagem_setup = (reducao_setup / 180) * 100
+        st.metric(
+            label="Tempo de Troca de Modelo", 
+            value=f"{TEMPO_SETUP_MODELO} s",
+            delta=f"{reducao_setup} s ({porcentagem_setup:.0f}%)" if reducao_setup != 0 else "Sem alteração",
+            delta_color="inverse" # Fica verde se o tempo de troca diminuir
+        )
+        
+    with col4:
+        # Mostra o ganho de qualidade em relação ao cenário inicial histórico (que era de 96.5% devido aos defeitos antigos)
+        melhoria_qualidade = taxa_qualidade - 96.5
+        st.metric(
+            label="Taxa de Qualidade Global", 
+            value=f"{taxa_qualidade:.1f}%",
+            delta=f"{melhoria_qualidade:+.1f}% de Ganho" if melhoria_qualidade != 0 else None
+        )
+
+    # Bloco dinâmico de sucesso corrigido com cálculo baseado nos dados de custos reais do slide de vocês
+    custo_inicial_slide = 50000.00
+    economia_atual = custo_inicial_slide - (defeitos_calc * 1428.57)
+    
+    if economia_atual > 0:
+        st.success(
+            f"**IMPACTO DA MELHORIA NESTA RODADA:**  \n"
+            f"• O Poka-Yoke trouxe uma econômia R$ {max(0.0, economia_atual):,.2f}** em custos por turno!"
+        )
 
     st.markdown("---")
     st.markdown("#### 📊 Gráfico de Balanceamento de Linha (Tempo Médio por Estação)")
