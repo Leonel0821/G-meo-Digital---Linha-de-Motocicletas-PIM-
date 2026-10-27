@@ -132,7 +132,7 @@ if st.sidebar.button("🚀 Rodar Simulação e Enviar Dados"):
         
     with col2:
         # Mostra o resultado atual dos defeitos calculados na simulação
-        st.metric(label="Defeito de montagem (E11)", value=f"{defeitos_calc}")
+        st.metric(label="Defeitos (E11)", value=f"{defeitos_calc}")
         
     with col3:
         # Compara o tempo de troca de modelo inserido com o cenário inicial antigo de 180 segundos
@@ -140,7 +140,7 @@ if st.sidebar.button("🚀 Rodar Simulação e Enviar Dados"):
         porcentagem_setup = (reducao_setup / 180) * 100
         st.metric(
             label="Tempo de Troca de Modelo", 
-            value=f"{TEMPO_SETUP_MODELO} s",
+            value=f"{TEMPO_SETUP_MODELO} ",
             delta=f"{reducao_setup} s ({porcentagem_setup:.0f}%)" if reducao_setup != 0 else "Sem alteração",
             delta_color="inverse" # Fica verde se o tempo de troca diminuir
         )
