@@ -4,10 +4,36 @@ import random
 import pandas as pd
 from datetime import datetime
 import streamlit as st
-import time
 import plotly.express as px
+import time
 
 st.set_page_config(layout="wide", page_title="Gêmeo Digital - Grupo 8")
+
+# ==========================================
+# INICIALIZAÇÃO DE ESTADOS (MEMÓRIA DO GÊMEO)
+# ==========================================
+if 'simulacao_ativa' not in st.session_state:
+    st.session_state.simulacao_ativa = False
+if 'moto_atual' not in st.session_state:
+    st.session_state.moto_atual = 0
+if 'historico_producao' not in st.session_state:
+    st.session_state.historico_producao = []
+
+# Estados específicos da Estação 11 (Operador + Esteira + Andon)
+if 'e11_tempo_ciclo' not in st.session_state:
+    st.session_state.e11_tempo_ciclo = 0
+if 'e11_tempo_travada' not in st.session_state:
+    st.session_state.e11_tempo_travada = 0
+if 'e11_erro_pendente' not in st.session_state:
+    st.session_state.e11_erro_pendente = False
+if 'e11_esteira_travada' not in st.session_state:
+    st.session_state.e11_esteira_travada = False
+if 'e11_montagem_ok' not in st.session_state:
+    st.session_state.e11_montagem_ok = False
+if 'e11_ultimo_valor_registrado' not in st.session_state:
+    st.session_state.e11_ultimo_valor_registrado = 85.0
+if 'e11_log' not in st.session_state:
+    st.session_state.e11_log = "Clique em 'Iniciar' na barra lateral para começar."
 
 # ==========================================
 # CONFIGURAÇÃO DA BARRA LATERAL
@@ -25,169 +51,181 @@ TEMPOS_ESTACOES = {
     "E13": 85, "E14": 75, "E15": 80, "E16": 85, "E17": 85, "E18": 80
 }
 
+col_btn1, col_btn2 = st.sidebar.columns(2)
+if col_btn1.button("🚀 Iniciar"):
+    st.session_state.simulacao_ativa = True
+    st.session_state.moto_atual = 0
+    st.session_state.historico_producao = []
+    st.session_state.e11_tempo_ciclo = 0
+    st.session_state.e11_tempo_travada = 0
+    st.session_state.e11_erro_pendente = False
+    st.session_state.e11_esteira_travada = False
+    st.session_state.e11_montagem_ok = False
+    st.session_state.e11_ultimo_valor_registrado = 85.0
+    st.session_state.e11_log = "Simulação iniciada! Ciclo de 10s (equivale a 90s)."
+    st.rerun()
+
+if col_btn2.button("⏹️ Parar"):
+    st.session_state.simulacao_ativa = False
+    st.session_state.e11_log = "Simulação pausada pelo usuário."
+    st.rerun()
+
 # ==========================================
-# BOTÃO DE SIMULAÇÃO CONTÍNUA (1 MOTO A CADA 10s)
+# FUNÇÃO DE PROCESSAMENTO DE 1 CICLO (MOTO)
 # ==========================================
-if st.sidebar.button("🚀 Rodar Simulação e Enviar Dados"):
-    
-    # Matemática teórica: 3600s / 90s = 40 motos em 1 hora
-    total_motos = max(1, int(TEMPO_SIMULACAO // TAKT_TIME_META))
+def processar_avanco_esteira(tempo_e11_registrado, teve_erro_e11):
+    st.session_state.moto_atual += 1
+    moto_num = st.session_state.moto_atual
+    moto_id = f"{moto_num:03d}"
     modelos_mix = ["XTZ 150", "FACTOR 150", "CROSSER 150", "LANDER 250"]
-    historico_producao = []
+    modelo_atual = random.choice(modelos_mix)
+    agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Cálculo base da Auditoria 5S
-    fator_proporcional = max(0.0, min(1.0, (PPM_DEFEITO - 17500) / (35000 - 17500)))
-    nota_5s_calc = max(0, min(100, int(85.0 - (55.0 * fator_proporcional) + random.randint(-2, 2))))
-    variacao_5s = nota_5s_calc - 30
-    porcentagem_ganho_5s = (variacao_5s / 30.0) * 100
-
-    # Conecta ao MQTT
-    client = None
-    try:
-        client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
-        client.connect("localhost", 1883, 60)
-        client.loop_start()
-    except Exception as e:
-        st.sidebar.warning(f"MQTT offline: {e}")
-
-    banner_status = st.empty()
-    barra_progresso = st.progress(0)
-    painel_ao_vivo = st.empty()
-
-    meta_proporcional = 37  # Meta de referência do cenário
-
-    # Loop contínuo: monta moto 1, 2, 3... até completar as 40 motos
-    for moto_num in range(1, total_motos + 1):
-        moto_id = f"{moto_num:03d}"
-        modelo_atual = random.choice(modelos_mix)
-        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        teve_setup_nesta_moto = False
-
-        # Gera os registros das 18 estações para esta moto
-        for estacao, tempo_base in TEMPOS_ESTACOES.items():
-            tempo_processo = max(10, random.normalvariate(tempo_base, 2))
+    for estacao, tempo_base in TEMPOS_ESTACOES.items():
+        if estacao == "E11":
+            tempo_processo = float(tempo_e11_registrado)
+            status_qualidade = "Defeito_Painel" if teve_erro_e11 else "Aprovado"
+            tempo_espera = round(tempo_e11_registrado - 85.0, 2) if tempo_e11_registrado > 85 else 0.0
+        else:
+            tempo_processo = round(max(10, random.normalvariate(tempo_base, 2)), 2)
             status_qualidade = "Aprovado"
             tempo_espera = round(random.uniform(0.1, 1.5), 2)
 
-            if estacao == "E11":
-                if random.random() < 0.15:
-                    tempo_espera = round(max(10, random.normalvariate(TEMPO_SETUP_MODELO, 5)), 2)
-                    teve_setup_nesta_moto = True
-                if random.random() < (PPM_DEFEITO / 1000000):
-                    status_qualidade = "Defeito_Painel"
+        st.session_state.historico_producao.append({
+            "horario_registro": agora,
+            "moto_id": moto_id,
+            "modelo": modelo_atual,
+            "estacao": estacao,
+            "tempo_espera": tempo_espera,
+            "tempo_processo": tempo_processo,
+            "Status_Qualidade": status_qualidade
+        })
 
-            historico_producao.append({
-                "horario_registro": agora,
-                "moto_id": moto_id,
-                "modelo": modelo_atual,
-                "estacao": estacao,
-                "tempo_espera": tempo_espera,
-                "tempo_processo": round(tempo_processo, 2),
-                "Status_Qualidade": status_qualidade
-            })
-
-        # CÁLCULO DINÂMICO DO DESLOCAMENTO DO MONTADOR (Atualiza a cada moto!)
-        deslocamento_base = 30.0 + (20.0 * fator_proporcional)
-        extra_setup = 2.5 if teve_setup_nesta_moto else 0.0
-        deslocamento_total_calc = round(deslocamento_base + extra_setup + random.uniform(-1.8, 1.8), 1)
-        variacao_deslocamento = deslocamento_total_calc - 50.0
-        porcentagem_reducao_deslocamento = (variacao_deslocamento / 50.0) * 100
-
-        df_parcial = pd.DataFrame(historico_producao)
-        defeitos_atual = int(len(df_parcial[df_parcial['Status_Qualidade'] == 'Defeito_Painel']))
-        taxa_defeito_pct = (defeitos_atual / moto_num) * 100
-
-        banner_status.info(f"🏍️ **Produzindo ao Vivo:** Moto **#{moto_id} ({modelo_atual})** finalizada na E18! ({moto_num}/{total_motos})")
-        barra_progresso.progress(moto_num / total_motos)
-
-        with painel_ao_vivo.container():
-            st.markdown("---")
-            st.markdown("## Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
-            st.markdown("#### Monitoramento em Tempo Real - Linha de Montagem de Motocicletas")
-            st.markdown("---")
-
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Motos Finalizadas (Saída E18)", f"{moto_num}", f"{moto_num - meta_proporcional} vs Meta do Período ({meta_proporcional})")
-            c2.metric("Defeito de montagem (E11)", f"{defeitos_atual}")
-            c3.metric("Taxa de Defeito (%)", f"{taxa_defeito_pct:.2f}%", f"{taxa_defeito_pct - 3.50:.2f}% vs Inicial")
-
-            c4, c5, c6 = st.columns(3)
-            c4.metric("Tempo de Troca de Modelo", f"{TEMPO_SETUP_MODELO} s", "Sem alteração")
-            c5.metric("Deslocamento do Montador", f"{deslocamento_total_calc} m", f"{variacao_deslocamento:.1f} m ({porcentagem_reducao_deslocamento:.0f}%) vs Inicial")
-            c6.metric("Auditoria 5S", f"{nota_5s_calc} / 100", f"{variacao_5s} pts vs Linha de base")
-
-            st.success("💡 **IMPACTO DA MELHORIA NESTA RODADA:** O Poka-Yoke trouxe uma economia de R$ 50.000,00 em custos por turno!")
-
-            df_media_estacao = df_parcial.groupby("estacao", as_index=False)["tempo_processo"].mean()
-            df_media_estacao["Cor"] = df_media_estacao["tempo_processo"].apply(lambda x: "Acima da Meta" if x > TAKT_TIME_META else "Dentro da Meta")
-            fig = px.bar(
-                df_media_estacao, x="estacao", y="tempo_processo", color="Cor",
-                color_discrete_map={"Dentro da Meta": "#1f77b4", "Acima da Meta": "#d62728"},
-                title="📊 Gráfico de Balanceamento de Linha (Tempo Médio por Estação)"
-            )
-            fig.add_hline(y=TAKT_TIME_META, line_dash="dash", line_color="red")
-            st.plotly_chart(fig, use_container_width=True, key=f"grafico_vivo_{moto_num}")
-
-            st.subheader("🗄️ Banco de Dados Local (Histórico em Tempo Real)")
-            st.dataframe(df_parcial.iloc[::-1], use_container_width=True)
-
-        if client:
-            payload = {
-                "grupo": "Grupo 8 - Motocicletas (PIM)",
-                "moto_atual": moto_id,
-                "modelo": modelo_atual,
-                "motos_finalizadas": moto_num,
-                "defeitos": defeitos_atual,
-                "deslocamento_total_m": deslocamento_total_calc,
-                "nota_5s": nota_5s_calc
-            }
-            client.publish("ufam/digitaltwin/producao", json.dumps(payload))
-
-        if moto_num < total_motos:
-            time.sleep(10)
-
-    if client:
-        client.loop_stop()
+    try:
+        client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
+        client.connect("localhost", 1883, 60)
+        df_temp = pd.DataFrame(st.session_state.historico_producao)
+        defeitos_atual = int(len(df_temp[df_temp['Status_Qualidade'] == 'Defeito_Painel']))
+        payload = {
+            "grupo": "Grupo 8 - Motocicletas (PIM)",
+            "moto_atual": moto_id,
+            "modelo": modelo_atual,
+            "motos_finalizadas": moto_num,
+            "defeitos": defeitos_atual,
+            "tempo_e11": tempo_e11_registrado,
+            "lampada_vermelha_e11": st.session_state.e11_esteira_travada
+        }
+        client.publish("ufam/digitaltwin/producao", json.dumps(payload))
         client.disconnect()
+    except Exception:
+        pass
 
-    # Salva os dados finais e recarrega a tela limpa
-    st.session_state['simulacao_rodada'] = True
-    st.session_state['df_resultado'] = pd.DataFrame(historico_producao)
-    st.session_state['motos_calc'] = total_motos
-    st.session_state['defeitos_calc'] = int(len(st.session_state['df_resultado'][st.session_state['df_resultado']['Status_Qualidade'] == 'Defeito_Painel']))
-    st.session_state['deslocamento_total_calc'] = deslocamento_total_calc
-    st.session_state['variacao_deslocamento'] = variacao_deslocamento
-    st.session_state['porcentagem_reducao_deslocamento'] = porcentagem_reducao_deslocamento
-    st.session_state['nota_5s_calc'] = nota_5s_calc
-    st.session_state['variacao_5s'] = variacao_5s
-    st.session_state['porcentagem_ganho_5s'] = porcentagem_ganho_5s
-    st.rerun()
+# ==========================================
+# INTERFACE PRINCIPAL (SEMPRE VISÍVEL)
+# ==========================================
+total_motos = max(1, int(TEMPO_SIMULACAO // TAKT_TIME_META))
 
-# =========================================================
-# RENDERIZAÇÃO DA TELA PERSISTENTE APÓS A SIMULAÇÃO
-# =========================================================
-if st.session_state.get('simulacao_rodada', False):
-    df_resultado = st.session_state['df_resultado']
-    motos_calc = st.session_state['motos_calc']
-    defeitos_calc = st.session_state['defeitos_calc']
-    deslocamento_total_calc = st.session_state['deslocamento_total_calc']
-    variacao_deslocamento = st.session_state['variacao_deslocamento']
-    porcentagem_reducao_deslocamento = st.session_state['porcentagem_reducao_deslocamento']
-    nota_5s_calc = st.session_state['nota_5s_calc']
-    variacao_5s = st.session_state['variacao_5s']
-    porcentagem_ganho_5s = st.session_state['porcentagem_ganho_5s']
+st.markdown("## Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
+st.markdown("### 🎛️ Painel do Montador - Estação 11 (Simulação Manual)")
 
-    st.markdown("---")
-    st.markdown("## Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
-    st.markdown("#### Monitoramento em Tempo Real - Linha de Montagem de Motocicletas")
-    st.markdown("---")
+col_op1, col_op2, col_op3, col_lamp = st.columns([2, 2, 2, 1.5])
 
+with col_op1:
+    desabilitar_verde = (not st.session_state.simulacao_ativa) or st.session_state.e11_esteira_travada or st.session_state.e11_erro_pendente or st.session_state.e11_montagem_ok
+    if st.button("🟢 BOTÃO VERDE\nConcluir Montagem (85s)", use_container_width=True, disabled=desabilitar_verde):
+        st.session_state.e11_montagem_ok = True
+        st.session_state.e11_log = "🟢 OPERADOR: Botão Verde acionado! Aguardando fechar 10s para gravar 85s."
+        st.rerun()
+
+with col_op2:
+    desabilitar_vermelho = (not st.session_state.simulacao_ativa) or st.session_state.e11_erro_pendente
+    if st.button("🔴 BOTÃO VERMELHO\nSimular Erro no Painel", use_container_width=True, disabled=desabilitar_vermelho):
+        st.session_state.e11_erro_pendente = True
+        st.session_state.e11_montagem_ok = False
+        st.session_state.e11_log = "🟡 OPERADOR: Botão Vermelho acionado. O erro será acusado se passar de 10s!"
+        st.rerun()
+
+with col_op3:
+    desabilitar_laranja = (not st.session_state.simulacao_ativa) or (not st.session_state.e11_erro_pendente)
+    if st.button("🟠 BOTÃO LARANJA\nCorrigir Erro / Destravar", use_container_width=True, disabled=desabilitar_laranja):
+        if not st.session_state.e11_esteira_travada:
+            st.session_state.e11_erro_pendente = False
+            st.session_state.e11_log = "🟠 CORREÇÃO RÁPIDA: Erro corrigido antes dos 10s. Esteira não travou!"
+        else:
+            tempo_parado = st.session_state.e11_tempo_travada
+            tempo_calculado = round((tempo_parado / 10.0) * TAKT_TIME_META, 2)
+            st.session_state.e11_ultimo_valor_registrado = tempo_calculado
+
+            processar_avanco_esteira(tempo_calculado, teve_erro_e11=True)
+            st.session_state.e11_log = f"🟠 CORRIGIDO: Esteira ficou {tempo_parado}s parada -> Variável E11 gravou {tempo_calculado}s!"
+
+            st.session_state.e11_tempo_ciclo = 0
+            st.session_state.e11_tempo_travada = 0
+            st.session_state.e11_erro_pendente = False
+            st.session_state.e11_esteira_travada = False
+            st.session_state.e11_montagem_ok = False
+        st.rerun()
+
+with col_lamp:
+    if st.session_state.e11_esteira_travada:
+        st.markdown(
+            """
+            <div style="background-color:#3a0000; border:2px solid #ff1e1e; border-radius:10px; padding:10px; text-align:center; box-shadow: 0 0 20px #ff1e1e;">
+                <div style="width:28px; height:28px; background-color:#ff1e1e; border-radius:50%; margin:0 auto 5px auto; box-shadow: 0 0 15px #ff5252;"></div>
+                <strong style="color:#ff5252; font-size:13px;">🚨 LÂMPADA ACESA<br>ESTEIRA TRAVADA</strong>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            """
+            <div style="background-color:#1a1c23; border:1px solid #333; border-radius:10px; padding:10px; text-align:center;">
+                <div style="width:28px; height:28px; background-color:#3a1515; border-radius:50%; margin:0 auto 5px auto; border:1px solid #552222;"></div>
+                <span style="color:#888; font-size:13px;">⚪ LÂMPADA APAGADA<br>ANDON NORMAL</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+# Barra de Status da Estação 11
+c_status1, c_status2, c_status3, c_status4 = st.columns(4)
+c_status1.metric("⏱️ Relógio do Ciclo (Meta 10s)", f"{st.session_state.e11_tempo_ciclo}s / 10s")
+c_status2.metric("🛑 Tempo Esteira Travada", f"{st.session_state.e11_tempo_travada}s")
+c_status3.metric("📊 Variável E11 Atual", f"{st.session_state.e11_ultimo_valor_registrado} s")
+c_status4.metric("🏍️ Progresso da Linha", f"{st.session_state.moto_atual} / {total_motos}")
+
+if st.session_state.e11_esteira_travada:
+    st.error(st.session_state.e11_log)
+elif st.session_state.e11_erro_pendente:
+    st.warning(st.session_state.e11_log)
+else:
+    st.info(st.session_state.e11_log)
+
+st.markdown("---")
+
+# ==========================================
+# DASHBOARD DO GÊMEO DIGITAL (MÉTRICAS E GRÁFICOS)
+# ==========================================
+if len(st.session_state.historico_producao) > 0:
+    df_parcial = pd.DataFrame(st.session_state.historico_producao)
+    moto_num = st.session_state.moto_atual
+    defeitos_atual = int(len(df_parcial[df_parcial['Status_Qualidade'] == 'Defeito_Painel']))
+    taxa_defeito_pct = (defeitos_atual / moto_num) * 100
     meta_proporcional = 37
-    taxa_defeito_pct = (defeitos_calc / motos_calc) * 100 if motos_calc > 0 else 0.0
+
+    fator_proporcional = max(0.0, min(1.0, (PPM_DEFEITO - 17500) / (35000 - 17500)))
+    nota_5s_calc = max(0, min(100, int(85.0 - (55.0 * fator_proporcional))))
+    variacao_5s = nota_5s_calc - 30
+
+    deslocamento_base = 30.0 + (20.0 * fator_proporcional)
+    deslocamento_total_calc = round(deslocamento_base + random.uniform(-1.0, 1.0), 1)
+    variacao_deslocamento = deslocamento_total_calc - 50.0
+    porcentagem_reducao_deslocamento = (variacao_deslocamento / 50.0) * 100
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Motos Finalizadas (Saída E18)", f"{motos_calc}", f"{motos_calc - meta_proporcional} vs Meta do Período ({meta_proporcional})")
-    c2.metric("Defeito de montagem (E11)", f"{defeitos_calc}")
+    c1.metric("Motos Finalizadas (Saída E18)", f"{moto_num}", f"{moto_num - meta_proporcional} vs Meta ({meta_proporcional})")
+    c2.metric("Defeito de montagem (E11)", f"{defeitos_atual}")
     c3.metric("Taxa de Defeito (%)", f"{taxa_defeito_pct:.2f}%", f"{taxa_defeito_pct - 3.50:.2f}% vs Inicial")
 
     c4, c5, c6 = st.columns(3)
@@ -195,33 +233,52 @@ if st.session_state.get('simulacao_rodada', False):
     c5.metric("Deslocamento do Montador", f"{deslocamento_total_calc} m", f"{variacao_deslocamento:.1f} m ({porcentagem_reducao_deslocamento:.0f}%) vs Inicial")
     c6.metric("Auditoria 5S", f"{nota_5s_calc} / 100", f"{variacao_5s} pts vs Linha de base")
 
-    st.success("💡 **IMPACTO DA MELHORIA NESTA RODADA:** O Poka-Yoke trouxe uma economia de R$ 50.000,00 em custos por turno!")
-
-    df_media_estacao = df_resultado.groupby("estacao", as_index=False)["tempo_processo"].mean()
+    df_media_estacao = df_parcial.groupby("estacao", as_index=False)["tempo_processo"].mean()
     df_media_estacao["Cor"] = df_media_estacao["tempo_processo"].apply(
         lambda x: "Acima da Meta" if x > TAKT_TIME_META else "Dentro da Meta"
     )
     fig = px.bar(
-        df_media_estacao,
-        x="estacao",
-        y="tempo_processo",
-        color="Cor",
+        df_media_estacao, x="estacao", y="tempo_processo", color="Cor",
         color_discrete_map={"Dentro da Meta": "#1f77b4", "Acima da Meta": "#d62728"},
         title="📊 Gráfico de Balanceamento de Linha (Tempo Médio por Estação)"
     )
     fig.add_hline(y=TAKT_TIME_META, line_dash="dash", line_color="red")
     st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("🗄️ Banco de Dados Local (Histórico Completo de Eventos da Linha)")
-    aba_logs, aba_modelos = st.tabs(["📄 Registros Brutos do Banco", "🏍️ Produção por Modelo de Moto"])
+    st.subheader("🗄️ Banco de Dados Local (Histórico em Tempo Real)")
+    st.dataframe(df_parcial.iloc[::-1], use_container_width=True)
 
-    with aba_logs:
-        st.caption("Abaixo estão os registros capturados em tempo real durante a simulação:")
-        st.dataframe(df_resultado.iloc[::-1], use_container_width=True)
+# ==========================================
+# MOTOR DO RELÓGIO (RODA 1 SEGUNDO POR VEZ)
+# ==========================================
+if st.session_state.simulacao_ativa and st.session_state.moto_atual < total_motos:
+    time.sleep(1)
 
-    with aba_modelos:
-        df_saida = df_resultado[df_resultado["estacao"] == "E18"]
-        resumo_modelos = df_saida.groupby("modelo", as_index=False)["moto_id"].count()
-        resumo_modelos.columns = ["Modelo de Moto", "Quantidade Produzida"]
-        st.dataframe(resumo_modelos, use_container_width=True)
+    if not st.session_state.e11_esteira_travada:
+        st.session_state.e11_tempo_ciclo += 1
+
+        if st.session_state.e11_tempo_ciclo >= 10:
+            if st.session_state.e11_erro_pendente:
+                st.session_state.e11_esteira_travada = True
+                st.session_state.e11_log = "🚨 ALERTA: Passaram 10s! Erro acusado, LÂMPADA VERMELHA ACESA e esteira TRAVADA."
+            else:
+                valor_registrar = 85.0
+                st.session_state.e11_ultimo_valor_registrado = valor_registrar
+                processar_avanco_esteira(valor_registrar, teve_erro_e11=False)
+
+                if st.session_state.e11_montagem_ok:
+                    st.session_state.e11_log = "✅ CICLO OK: Botão verde confirmado. Variável E11 recebeu 85s."
+                else:
+                    st.session_state.e11_log = "⚙️ CICLO AUTOMÁTICO: 10s fechados. Variável E11 recebeu 85s."
+
+                st.session_state.e11_tempo_ciclo = 0
+                st.session_state.e11_montagem_ok = False
+    else:
+        st.session_state.e11_tempo_travada += 1
+
+    if st.session_state.moto_atual >= total_motos:
+        st.session_state.simulacao_ativa = False
+
+    st.rerun()
+
 
