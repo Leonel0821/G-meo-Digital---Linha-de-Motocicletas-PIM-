@@ -62,7 +62,7 @@ if col_btn1.button("🚀 Iniciar"):
     st.session_state.e11_esteira_travada = False
     st.session_state.e11_montagem_ok = False
     st.session_state.e11_ultimo_valor_registrado = 85.0
-    st.session_state.e11_log = "Simulação iniciada! Ciclo de 10s (equivale a 90s)."
+    st.session_state.e11_log = "Simulação iniciada! Ciclo de 10 segundos (equivale a 90 segundos)."
     st.rerun()
 
 if col_btn2.button("⏹️ Parar"):
@@ -126,31 +126,31 @@ def processar_avanco_esteira(tempo_e11_registrado, teve_erro_e11):
 total_motos = max(1, int(TEMPO_SIMULACAO // TAKT_TIME_META))
 
 st.markdown("## Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
-st.markdown("### 🎛️ Painel do Montador - Estação 11 (Simulação Manual)")
+st.markdown("### Painel que simula o montador da estação 11")
 
 col_op1, col_op2, col_op3, col_lamp = st.columns([2, 2, 2, 1.5])
 
 with col_op1:
     desabilitar_verde = (not st.session_state.simulacao_ativa) or st.session_state.e11_esteira_travada or st.session_state.e11_erro_pendente or st.session_state.e11_montagem_ok
-    if st.button("🟢 BOTÃO VERDE\nConcluir Montagem (85s)", use_container_width=True, disabled=desabilitar_verde):
+    if st.button("🟢 PAINEL CORRETO", use_container_width=True, disabled=desabilitar_verde):
         st.session_state.e11_montagem_ok = True
-        st.session_state.e11_log = "🟢 OPERADOR: Botão Verde acionado! Aguardando fechar 10s para gravar 85s."
+        st.session_state.e11_log = "🟢 OPERADOR: Botão Verde acionado! Aguardando fechar 10 segundos"
         st.rerun()
 
 with col_op2:
     desabilitar_vermelho = (not st.session_state.simulacao_ativa) or st.session_state.e11_erro_pendente
-    if st.button("🔴 BOTÃO VERMELHO\nSimular Erro no Painel", use_container_width=True, disabled=desabilitar_vermelho):
+    if st.button("🔴 PAINEL ERRADO", use_container_width=True, disabled=desabilitar_vermelho):
         st.session_state.e11_erro_pendente = True
         st.session_state.e11_montagem_ok = False
-        st.session_state.e11_log = "🟡 OPERADOR: Botão Vermelho acionado. O erro será acusado se passar de 10s!"
+        st.session_state.e11_log = "🟡 OPERADOR: Botão Vermelho acionado. O erro será acusado se passar de 10 segundos!"
         st.rerun()
 
 with col_op3:
     desabilitar_laranja = (not st.session_state.simulacao_ativa) or (not st.session_state.e11_erro_pendente)
-    if st.button("🟠 BOTÃO LARANJA\nCorrigir Erro / Destravar", use_container_width=True, disabled=desabilitar_laranja):
+    if st.button("🟠 CORRIGIR / DESTRAVAR", use_container_width=True, disabled=desabilitar_laranja):
         if not st.session_state.e11_esteira_travada:
             st.session_state.e11_erro_pendente = False
-            st.session_state.e11_log = "🟠 CORREÇÃO RÁPIDA: Erro corrigido antes dos 10s. Esteira não travou!"
+            st.session_state.e11_log = "🟠 CORREÇÃO RÁPIDA: Erro corrigido antes dos 10 segundos. Esteira não travou!"
         else:
             tempo_parado = st.session_state.e11_tempo_travada
             tempo_calculado = round((tempo_parado / 10.0) * TAKT_TIME_META, 2)
@@ -172,7 +172,7 @@ with col_lamp:
             """
             <div style="background-color:#3a0000; border:2px solid #ff1e1e; border-radius:10px; padding:10px; text-align:center; box-shadow: 0 0 20px #ff1e1e;">
                 <div style="width:28px; height:28px; background-color:#ff1e1e; border-radius:50%; margin:0 auto 5px auto; box-shadow: 0 0 15px #ff5252;"></div>
-                <strong style="color:#ff5252; font-size:13px;">🚨 LÂMPADA ACESA<br>ESTEIRA TRAVADA</strong>
+                <strong style="color:#ff5252; font-size:13px;">🚨 DEFEITO<br>ESTEIRA TRAVADA</strong>
             </div>
             """,
             unsafe_allow_html=True
@@ -182,7 +182,7 @@ with col_lamp:
             """
             <div style="background-color:#1a1c23; border:1px solid #333; border-radius:10px; padding:10px; text-align:center;">
                 <div style="width:28px; height:28px; background-color:#3a1515; border-radius:50%; margin:0 auto 5px auto; border:1px solid #552222;"></div>
-                <span style="color:#888; font-size:13px;">⚪ LÂMPADA APAGADA<br>ANDON NORMAL</span>
+                <span style="color:#888; font-size:13px;">⚪ LÂMPADA APAGADA<br>
             </div>
             """,
             unsafe_allow_html=True
@@ -190,10 +190,10 @@ with col_lamp:
 
 # Barra de Status da Estação 11
 c_status1, c_status2, c_status3, c_status4 = st.columns(4)
-c_status1.metric("⏱️ Relógio do Ciclo (Meta 10s)", f"{st.session_state.e11_tempo_ciclo}s / 10s")
-c_status2.metric("🛑 Tempo Esteira Travada", f"{st.session_state.e11_tempo_travada}s")
-c_status3.metric("📊 Variável E11 Atual", f"{st.session_state.e11_ultimo_valor_registrado} s")
-c_status4.metric("🏍️ Progresso da Linha", f"{st.session_state.moto_atual} / {total_motos}")
+c_status1.metric("Tempo de Simulação", f"{st.session_state.e11_tempo_ciclo}segundos")
+c_status2.metric("Esteira Travada", f"{st.session_state.e11_tempo_travada}segundos")
+c_status3.metric("Tempo Real de Parada da Linha", f"{st.session_state.e11_ultimo_valor_registrado} segundos")
+c_status4.metric("Progresso da Linha", f"{st.session_state.moto_atual} / {total_motos}")
 
 if st.session_state.e11_esteira_travada:
     st.error(st.session_state.e11_log)
@@ -267,9 +267,9 @@ if st.session_state.simulacao_ativa and st.session_state.moto_atual < total_moto
                 processar_avanco_esteira(valor_registrar, teve_erro_e11=False)
 
                 if st.session_state.e11_montagem_ok:
-                    st.session_state.e11_log = "✅ CICLO OK: Botão verde confirmado. Variável E11 recebeu 85s."
+                    st.session_state.e11_log = "✅ CICLO OK: Botão verde confirmado."
                 else:
-                    st.session_state.e11_log = "⚙️ CICLO AUTOMÁTICO: 10s fechados. Variável E11 recebeu 85s."
+                    st.session_state.e11_log = "⚙️ CICLO AUTOMÁTICO: 10 segundos"
 
                 st.session_state.e11_tempo_ciclo = 0
                 st.session_state.e11_montagem_ok = False
@@ -280,5 +280,3 @@ if st.session_state.simulacao_ativa and st.session_state.moto_atual < total_moto
         st.session_state.simulacao_ativa = False
 
     st.rerun()
-
-
