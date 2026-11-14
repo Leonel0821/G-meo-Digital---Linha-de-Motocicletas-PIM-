@@ -203,9 +203,9 @@ with col_lamp:
 
 # Barra de Status da Estação 11
 c_status1, c_status2, c_status3, c_status4 = st.columns(4)
-c_status1.metric("Tempo de Simulação", f"{st.session_state.e11_tempo_ciclo} s")
-c_status2.metric("Esteira Travada", f"{st.session_state.e11_tempo_travada} s")
-c_status3.metric("Tempo Real de Parada da Linha", f"{st.session_state.e11_tempo_parada_acumulado} s")
+c_status1.metric("Tempo de Simulação", f"{st.session_state.e11_tempo_ciclo} segundos")
+c_status2.metric("Esteira Travada", f"{st.session_state.e11_tempo_travada} segundos")
+c_status3.metric("Tempo Real de Parada da Linha", f"{st.session_state.e11_tempo_parada_acumulado} segundos")
 c_status4.metric("Progresso da Linha", f"{st.session_state.moto_atual} / {total_motos}")
 
 if st.session_state.e11_esteira_travada:
