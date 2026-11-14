@@ -223,8 +223,7 @@ st.markdown("---")
 
 if len(st.session_state.historico_producao) > 0:
     
-    st.markdown("### Saída de dados")
-    
+    st.markdown("### Indicadores de Desempenho")
     df_parcial = pd.DataFrame(st.session_state.historico_producao)
     moto_num = st.session_state.moto_atual
     defeitos_atual = int(len(df_parcial[df_parcial['Status_Qualidade'] == 'Defeito_Painel']))
