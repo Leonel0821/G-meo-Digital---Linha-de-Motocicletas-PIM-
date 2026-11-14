@@ -222,7 +222,9 @@ st.markdown("---")
 # ==========================================
 
 if len(st.session_state.historico_producao) > 0:
+    
     st.markdown("###  Simulação do montador da estação 11")
+    
     df_parcial = pd.DataFrame(st.session_state.historico_producao)
     moto_num = st.session_state.moto_atual
     defeitos_atual = int(len(df_parcial[df_parcial['Status_Qualidade'] == 'Defeito_Painel']))
