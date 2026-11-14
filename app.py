@@ -130,8 +130,12 @@ total_motos = max(1, int(TEMPO_SIMULACAO // TAKT_TIME_META))
 
 st.markdown("## Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
 st.markdown("###  Simulação do Montador da Estação 11")
-st.markdown("###### Funcionamento:")
-
+st.markdown("###### Funcionamento para apresentação:")
+st.markdown("###### Esse tempo esta configurado 10 segundos, que valem os 90 segundos do Takt Time")
+st.markdown("###### Ao apertar o botão verde. É como se o montador tivesse colocado o painel correto. Esse botão e automatico")
+st.markdown("###### Ao apertar o botão vermelho, quando o tempo de 10 segundos acabar, ele indicará defeito, e a luz vermelha irá acender")
+st.markdown("###### O botão laranja é a correção da falha, e a esteira volta a funcionar")
+st.markdown("###### Os tempos da esteira parada se acumulam")
 col_op1, col_op2, col_op3, col_lamp = st.columns([2, 2, 2, 1.5])
 
 with col_op1:
