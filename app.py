@@ -129,7 +129,7 @@ def processar_avanco_esteira(tempo_e11_registrado, teve_erro_e11):
 total_motos = max(1, int(TEMPO_SIMULACAO // TAKT_TIME_META))
 
 st.markdown("## Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
-st.markdown("### Painel que simula o montador da estação 11")
+st.markdown("###  Simulação do montador da estação 11")
 
 col_op1, col_op2, col_op3, col_lamp = st.columns([2, 2, 2, 1.5])
 
