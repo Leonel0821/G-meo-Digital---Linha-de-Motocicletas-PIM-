@@ -130,9 +130,7 @@ total_motos = max(1, int(TEMPO_SIMULACAO // TAKT_TIME_META))
 
 st.markdown("## Gêmeo Digital - Grupo 8 - Cenário 09 - Linha de Motocicletas (PIM)")
 st.markdown("###  Simulação do Montador da Estação 11")
-st.markdown("## Funcionamento:
-* Botão verde: funciona vc apertando ou não;
-* Botão vermelho:ele avisa que o montador montou o painel errado")
+st.markdown("## Funcionamento:")
 
 col_op1, col_op2, col_op3, col_lamp = st.columns([2, 2, 2, 1.5])
 
