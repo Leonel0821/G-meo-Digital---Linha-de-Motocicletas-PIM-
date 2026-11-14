@@ -223,7 +223,7 @@ st.markdown("---")
 
 if len(st.session_state.historico_producao) > 0:
     
-    st.markdown("###  Simulação do montador da estação 11")
+    st.markdown("### Saída de dados")
     
     df_parcial = pd.DataFrame(st.session_state.historico_producao)
     moto_num = st.session_state.moto_atual
