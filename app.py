@@ -147,7 +147,7 @@ with st.sidebar:
         st.session_state.sim_ativa = False
     if st.button("↺ Resetar Simulação", use_container_width=True):
         resetar_estado()
-    if st.button("🗑️ Limpar Histórico", use_container_width=True):
+    if st.button(" Limpar Histórico", use_container_width=True):
         limpar_banco()
         st.rerun()
 
