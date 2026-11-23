@@ -217,7 +217,6 @@ if not df_historico.empty:
     m1, m2, m3 = st.columns(3)
     m1.metric("Motos Finalizadas (Banco)", len(df_finalizadas))
     m2.metric("Total de Falhas / Retrabalhos", total_falhas)
-    m3.metric("Tempo Médio Total / Moto", f"{tempo_medio:.1f}s")
 
     st.dataframe(
         df_historico,
