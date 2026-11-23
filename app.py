@@ -141,11 +141,11 @@ def registrar_escolha_operador(kit_escolhido):
 with st.sidebar:
     st.header("Controle")
     col1, col2 = st.columns(2)
-    if col1.button("▶ Iniciar", use_container_width=True):
+    if col1.button(" Iniciar", use_container_width=True):
         st.session_state.sim_ativa = True
-    if col2.button("⏸ Pausar", use_container_width=True):
+    if col2.button(" Pausar", use_container_width=True):
         st.session_state.sim_ativa = False
-    if st.button("↺ Resetar Simulação", use_container_width=True):
+    if st.button(" Resetar Simulação", use_container_width=True):
         resetar_estado()
     if st.button(" Limpar Histórico", use_container_width=True):
         limpar_banco()
