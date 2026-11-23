@@ -204,7 +204,7 @@ st.divider()
 # ==============================================================================
 # HISTÓRICO DE PRODUÇÃO (MOTOS FINALIZADAS, TEMPO GASTO E FALHAS)
 # ==============================================================================
-st.subheader("📋 Histórico de Produção (Estação E11)")
+st.subheader("Histórico de Produção")
 
 df_historico = carregar_historico_db()
 
